@@ -1,0 +1,100 @@
+# -------------------------------------------------------------------
+# Airflow core
+# -------------------------------------------------------------------
+airflowVersion: "2.10.5"
+
+executor: KubernetesExecutor
+allowPodLaunching: true
+
+postgresql:
+  enabled: false
+
+# -------------------------------------------------------------------
+# Images
+# -------------------------------------------------------------------
+defaultAirflowRepository: apache/airflow
+defaultAirflowTag: "2.10.5"
+
+# -------------------------------------------------------------------
+# DAGs (hostPath, no git-sync)
+# -------------------------------------------------------------------
+dags:
+  gitSync:
+    enabled: true
+    repo: git@github.com:yuanDataScience/airflow_K8s.git
+    branch: main
+    depth: 1
+    subpath: "dags"
+    sshKeySecret: airflow-ssh-secret # K8s secret containing your git private key    
+
+  
+# -------------------------------------------------------------------
+# Database (external PostgreSQL)
+# -------------------------------------------------------------------
+data:
+  metadataConnection:
+    protocol: postgresql
+    host: postgres-postgresql.mlops
+    port: 5432
+    user: airflow_git
+    pass: airflow123
+    db: airflow_git
+    sslmode: disable
+
+# ----------------------------------------------------------
+# webserveSecretKeySecretName  
+# ----------------------------------------------------------  
+webserverSecretKeySecretName: airflow-webserver-secret
+  
+# ------------------------------------------------------------------
+# logs
+# ------------------------------------------------------------------
+logs:
+  persistence:
+    enabled: true
+    existingClaim: airflow-logs-pvc
+    
+    
+# -------------------------------------------------------------------
+# Scheduler
+# -------------------------------------------------------------------
+scheduler:
+  replicas: 1
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+
+# -------------------------------------------------------------------
+# Webserver
+# -------------------------------------------------------------------
+webserver:
+  replicas: 1
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+
+  defaultUser:
+    enabled: true
+    username: admin
+    password: admin
+    role: Admin
+    email: yuanhuang@sionpower.com
+
+  service:
+    type: ClusterIP
+    ports:
+      - name: airflow-ui
+        port: 8080
+
+# -------------------------------------------------------------------
+# Triggerer (stateless)
+# -------------------------------------------------------------------
+triggerer:
+  enabled: true
+  persistence:
+    enabled: false
+
+# -------------------------------------------------------------------
+# Workers (KubernetesExecutor → stateless)
+# -------------------------------------------------------------------
+workers:
+  persistence:
+    enabled: false
