@@ -1,0 +1,8 @@
+# 1. Set your git identity for this specific container run
+git config --global user.email "your-email@example.com"
+git config --global user.name "Airflow Worker Pipeline"
+
+# 2. Stage, commit, and push your changes
+git add .
+git commit -m "Automated update from Airflow pipeline"
+git push origin main

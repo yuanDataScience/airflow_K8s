@@ -12,22 +12,57 @@ postgresql:
 # -------------------------------------------------------------------
 # Images
 # -------------------------------------------------------------------
-defaultAirflowRepository: apache/airflow
+defaultAirflowRepository: huangyuan2000/airflow-worker-buildx
 defaultAirflowTag: "2.10.5"
+pullPolicy: Always
+
 
 # -------------------------------------------------------------------
 # DAGs (hostPath, no git-sync)
 # -------------------------------------------------------------------
 dags:
+  mountPath: /opt/airflow/dags
   gitSync:
-    enabled: true
-    repo: git@github.com:yuanDataScience/airflow_K8s.git
-    branch: main
-    depth: 1
-    subpath: "dags"
-    sshKeySecret: airflow-ssh-secret # K8s secret containing your git private key    
+    enabled: false
 
-  
+volumes:
+  - name: airflow-dags
+    hostPath:
+      path: /mnt/S/MLinfra/airflow_ml/dags
+      type: Directory
+  - name: git-ssh-key
+    secret:
+      secretName: git-ssh-secret
+      defaultMode: 0400  
+      items:
+        - key: gitSshKey       
+          path: id_ed25519
+        - key: knownHosts       # <-- Fetch the pre-trusted keys
+          path: known_hosts                
+  - name: dvc-cache-storage
+    persistentVolumeClaim:
+      claimName: airflow-dvc-pvc
+
+  # --- ADDED: Mount the host's Docker Socket ---
+  - name: docker-socket
+    hostPath:
+      path: /var/run/docker.sock
+      type: Socket       
+
+volumeMounts:
+  - name: airflow-dags
+    mountPath: /opt/airflow/dags
+    readOnly: true
+  - name: git-ssh-key
+    mountPath: /home/airflow/.ssh/
+    readOnly: true    
+  - name: dvc-cache-storage
+    mountPath: /home/airflow/.cache/dvc 
+
+  # --- ADDED: Expose the socket to the container ---
+  - name: docker-socket
+    mountPath: /var/run/docker.sock   
+
 # -------------------------------------------------------------------
 # Database (external PostgreSQL)
 # -------------------------------------------------------------------
@@ -45,44 +80,37 @@ data:
 # webserveSecretKeySecretName  
 # ----------------------------------------------------------  
 webserverSecretKeySecretName: airflow-webserver-secret
-  
-# ------------------------------------------------------------------
-# logs
-# ------------------------------------------------------------------
-logs:
-  persistence:
-    enabled: true
-    existingClaim: airflow-logs-pvc
-    
-    
-# -------------------------------------------------------------------
-# Scheduler
-# -------------------------------------------------------------------
-scheduler:
-  replicas: 1
-  hostNetwork: true
-  dnsPolicy: ClusterFirstWithHostNet
+
 
 # -------------------------------------------------------------------
 # Webserver
 # -------------------------------------------------------------------
 webserver:
   replicas: 1
-  hostNetwork: true
-  dnsPolicy: ClusterFirstWithHostNet
-
   defaultUser:
     enabled: true
     username: admin
     password: admin
     role: Admin
-    email: yuanhuang@sionpower.com
+    email: yuanhuang@test.com
 
   service:
     type: ClusterIP
     ports:
       - name: airflow-ui
         port: 8080
+# ------------------------------------------------------------------
+# logs
+# ------------------------------------------------------------------
+logs:
+  persistence:
+    enabled: true
+    existingClaim: airflow-logs-pvc      
+# -------------------------------------------------------------------
+# Scheduler
+# -------------------------------------------------------------------
+scheduler:
+  replicas: 1
 
 # -------------------------------------------------------------------
 # Triggerer (stateless)
@@ -95,6 +123,19 @@ triggerer:
 # -------------------------------------------------------------------
 # Workers (KubernetesExecutor → stateless)
 # -------------------------------------------------------------------
-workers:
+worker:
   persistence:
     enabled: false
+    
+# -------------------------------------------------------------------
+# Global Environment Variables from Secrets
+# -------------------------------------------------------------------
+# This maps keys from your 'registry-credentials' secret directly into
+# environment variables accessible by any Airflow task pod.
+secretEnv:
+  - name: DOCKER_USER
+    secretName: registry-credentials
+    secretKey: REGISTRY_USER
+  - name: DOCKER_PASSWORD
+    secretName: registry-credentials
+    secretKey: REGISTRY_PASS

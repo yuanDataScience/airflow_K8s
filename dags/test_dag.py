@@ -1,16 +1,19 @@
-from airflow import DAG
-from airflow.operators.bash import BashOperator
+from airflow.decorators import dag, task
 from datetime import datetime
 
-with DAG(
-    dag_id="test_hostpath_dag",
+@dag(
+    dag_id="test_taskflow_dag",
     start_date=datetime(2024, 1, 1),
     schedule=None,
     catchup=False,
     tags=["test"],
-) as dag:
+)
+def test_hostpath_dag():
 
-    hello = BashOperator(
-        task_id="hello",
-        bash_command="echo 'Hello from Airflow DAG on hostPath'",
-    )
+    @task.bash
+    def hello():
+        return "echo 'Hello from Airflow DAG on hostPath'"
+
+    hello()
+
+test_hostpath_dag()
