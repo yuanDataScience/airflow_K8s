@@ -13,7 +13,7 @@ postgresql:
 # Images
 # -------------------------------------------------------------------
 defaultAirflowRepository: huangyuan2000/airflow-worker-buildx
-defaultAirflowTag: "2.10.5"
+defaultAirflowTag: "2.10.5.1"
 pullPolicy: Always
 
 

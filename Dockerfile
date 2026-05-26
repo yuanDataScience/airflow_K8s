@@ -19,14 +19,19 @@ RUN echo \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
   tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Install the standard Docker CLI and the modern Buildx plugin
+
+  # Install the standard Docker CLI and the modern Buildx plugin
 RUN apt-get update && apt-get install -y \
     docker-ce-cli \
     docker-buildx-plugin \
     git \
-    openssh-client \
+    openssh-client \      
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*    
+    && rm -rf /var/lib/apt/lists/* 
+    
+# install cusotmize
+RUN curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash \
+    && mv kustomize /usr/local/bin/  
 
 # Switch back to the standard airflow user context
 USER airflow
